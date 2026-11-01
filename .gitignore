@@ -1,0 +1,17 @@
+# Pairing identity written by tools/danfoss_cli.py - contains a private key!
+danfoss_identity.json
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.ruff_cache/
+.mypy_cache/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/

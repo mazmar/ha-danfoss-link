@@ -1,0 +1,91 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pair with Danfoss Link CC",
+        "description": "On the Danfoss Link CC open Settings → Apps / Remote access → Add new app (Pair app). Enter the pairing code shown on the CC display.",
+        "data": {
+          "pairing_code": "Pairing code",
+          "device_name": "Name shown on the CC"
+        }
+      }
+    },
+    "error": {
+      "invalid_code": "Pairing failed – the code is wrong or has expired.",
+      "cannot_connect": "Cannot reach the Danfoss cloud (mdg-danfoss.hosted.trifork.com).",
+      "unknown": "Unexpected error, see the log."
+    },
+    "abort": {
+      "already_configured": "This Danfoss Link CC is already configured."
+    }
+  },
+  "entity": {
+    "climate": {
+      "room": {
+        "name": null
+      }
+    },
+    "number": {
+      "at_home_setpoint": {
+        "name": "Comfort temperature"
+      },
+      "away_setpoint": {
+        "name": "Eco temperature"
+      },
+      "manual_setpoint": {
+        "name": "Manual temperature"
+      }
+    },
+    "sensor": {
+      "outdoor_temperature": {
+        "name": "Outdoor temperature"
+      },
+      "system_state": {
+        "name": "System state"
+      },
+      "unread_alarms": {
+        "name": "Unread alarms"
+      }
+    },
+    "select": {
+      "mode": {
+        "name": "Mode",
+        "state": {
+          "schedule": "Schedule",
+          "at_home": "At home",
+          "pause": "Pause",
+          "vacation": "Vacation"
+        }
+      }
+    }
+  },
+  "services": {
+    "set_schedule": {
+      "name": "Set schedule",
+      "description": "Set the comfort (at home) periods of a room for the selected days. The rest of each day uses the eco (away) temperature. Rooms in the living zone share one schedule.",
+      "fields": {
+        "days": {
+          "name": "Days",
+          "description": "Weekdays to change (default: all)."
+        },
+        "periods": {
+          "name": "Comfort periods",
+          "description": "List of HH:MM-HH:MM intervals in 15 minute steps, e.g. [\"06:00-08:00\", \"16:00-22:30\"]. Empty list = eco all day."
+        }
+      }
+    }
+  },
+  "selector": {
+    "weekday": {
+      "options": {
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday",
+        "sunday": "Sunday"
+      }
+    }
+  }
+}

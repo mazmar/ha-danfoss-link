@@ -1,0 +1,25 @@
+set_schedule:
+  target:
+    entity:
+      integration: danfoss_link
+      domain: climate
+  fields:
+    days:
+      example: '["monday", "tuesday", "wednesday", "thursday", "friday"]'
+      selector:
+        select:
+          multiple: true
+          translation_key: weekday
+          options:
+            - monday
+            - tuesday
+            - wednesday
+            - thursday
+            - friday
+            - saturday
+            - sunday
+    periods:
+      required: true
+      example: '["06:00-08:00", "16:00-22:30"]'
+      selector:
+        object:
