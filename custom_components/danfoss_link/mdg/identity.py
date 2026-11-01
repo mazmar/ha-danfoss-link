@@ -10,6 +10,7 @@ from .errors import MdgSecurityError
 from .x509 import (
     Certificate,
     generate_certificate,
+    load_private_key,
     parse_certificate,
     pem_to_der,
     private_key_pem,
@@ -57,6 +58,14 @@ class Identity:
     @property
     def peer_id(self) -> str:
         return self.certificate.peer_id
+
+    def validate(self) -> None:
+        """Raise ValueError unless key and certificate belong together (brainpoolP320r1)."""
+        cert = self.certificate
+        if not cert.curve_ok:
+            raise ValueError("certificate key is not on brainpoolP320r1")
+        if load_private_key(self.private_key_pem).public_bytes() != cert.public_key:
+            raise ValueError("private key does not belong to the certificate")
 
 
 def verify_cloud_chain(certs: list[Certificate]) -> None:

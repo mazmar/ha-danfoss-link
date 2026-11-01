@@ -13,15 +13,28 @@ the Danfoss (Trifork MDG) cloud relay.
 
 ## Features
 
-| Platform | Entities |
-|---|---|
-| `climate` | one per room: current and target temperature, `auto` (follow schedule) / `heat` (manual) |
-| `number` | per room: comfort (at home), eco (away) and manual temperature |
-| `select` | house mode: schedule / at home / pause / vacation |
-| `sensor` | outdoor temperature, system state, unread alarms |
-| `switch` | on/off (relay) devices |
+| Entity | Per | What it does |
+|---|---|---|
+| `climate` | room | Current and target temperature; `auto` = follow schedule, `heat` = manual. Shows when the room is heating. The `schedule` attribute lists the comfort periods. |
+| `sensor` temperature | room | Room temperature for history and statistics |
+| `select` regulation | room | Schedule / Manual (same setting as the thermostat's auto/heat) |
+| `number` comfort / eco / manual temperature | room | The temperatures the room uses at home, away and in manual mode |
+| `binary_sensor` living zone | room | On when the room is in the living zone (shared mode and schedule) |
+| `binary_sensor` battery, radio connection | room | Low battery / lost device, derived from the CC's alarms. *Disabled by default.* |
+| `select` mode | CC | Schedule (no override) / At home / Vacation / Pause (/ Boost if the CC knows it) |
+| `sensor` system state | CC | What the house does now: comfort / eco / asleep from the schedule, or the active mode |
+| `number` vacation temperature | CC | Temperature used in vacation mode |
+| `sensor` vacation start / end | CC | Planned or running vacation |
+| `sensor` outdoor temperature | CC | If the CC has an outdoor sensor |
+| `sensor` unread alarms | CC | Count, with translated alarm texts in the attributes |
+| `button` mark alarms as read | CC | Marks all unread alarms as read |
+| `sensor` Wi-Fi signal | CC | If the firmware reports it. *Disabled by default.* |
+| `switch` | on/off device | Relay outputs |
 
-Each room is its own device, so it can be assigned to an area.
+Each room is its own device, so it can be assigned to an area. Unread alarms
+also appear as Home Assistant **notifications** (texts from the app, in 14
+languages); dismissing a notification marks the alarm as read on the CC. This
+can be turned off in the integration's options.
 
 ### Weekly schedule
 
@@ -41,6 +54,19 @@ data:
 Rooms in the CC's **Living** zone share one schedule (like in the app):
 changing one changes all of them.
 
+### Vacation
+
+```yaml
+action: danfoss_link.plan_vacation
+data:
+  start: "2026-12-20 08:00:00"
+  end: "2026-12-27 16:00:00"
+```
+
+The CC switches to vacation mode at the start and back to the schedule at the
+end, like the app's vacation calendar. `danfoss_link.cancel_vacation` removes
+the plan or ends a running vacation.
+
 ## Installation
 
 ### HACS (recommended)
@@ -54,14 +80,26 @@ Copy `custom_components/danfoss_link` to `<config>/custom_components/` and resta
 
 ## Configuration
 
-1. On the Danfoss Link CC start pairing of a new app – the display shows a pairing code.
-2. In Home Assistant: **Settings → Devices & services → Add integration → Danfoss Link**.
-3. Enter the code (it is valid only for a short time) and a name under which
-   Home Assistant will appear in the CC's list of paired apps.
+**Settings → Devices & services → Add integration → Danfoss Link**, then choose:
+
+* **Pair with the code from the CC** – on the CC start pairing of a new app; the
+  display shows a code. Enter it right away (it expires quickly; spaces and
+  dashes don't matter). Home Assistant appears on the CC under the name you
+  choose. If pairing succeeds but the first connection fails, you can retry
+  without a new code.
+* **Use an existing identity** – paste `danfoss_identity.json` written by
+  `tools/danfoss_cli.py pair`, or the certificate, private key and CC peer id
+  of an already paired app. One identity can only be connected once at a time:
+  stop the other client first.
+
+**Reconfigure** pairs again or replaces the identity of the same CC. **Configure**
+(options) sets the polling interval (default 60 s, minimum 20 s; every poll goes
+through the Danfoss cloud) and turns alarm notifications on or off. Schedules
+are read every 15 minutes and right after a change.
 
 To remove access, delete the Home Assistant entry from the list of paired apps on the CC.
 
-The integration polls the CC every 60 seconds; schedules every 15 minutes.
+Diagnostics (⋮ → Download diagnostics) redact the key, certificate, peer id and serial number.
 
 ## How it works
 
@@ -94,7 +132,8 @@ Assistant backups accordingly.
 ## Development
 
 ```bash
-python3 -m pytest tests                       # offline tests (EC, X.509, protobuf, PACE vs simulated CC, schedule)
+pip install -r requirements_test.txt
+python3 -m pytest                             # MDG/crypto tests + Home Assistant tests against a fake CC
 python3 tools/danfoss_cli.py probe -v         # connect to the cloud only
 python3 tools/danfoss_cli.py pair <CODE> -v   # pair; writes danfoss_identity.json (git-ignored, contains a private key!)
 python3 tools/danfoss_cli.py status
@@ -127,4 +166,7 @@ logger:
     custom_components.danfoss_link: debug
 ```
 
-Tested with the Danfoss Link CC protocol as used by app version 1.3.1.
+`tools/gen_alarm_texts.py` regenerates `alarm_texts.py` from the app's string resources.
+
+Tested with the Danfoss Link CC protocol as used by app version 1.3.1. See
+[NOTICE.md](NOTICE.md) for credits.

@@ -27,7 +27,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from .ec import BRAINPOOL_P320R1, PrivateKey, ecdsa_verify
 from .errors import MdgConnectionError, MdgSecurityError
-from .x509 import Certificate, parse_certificate, pem_to_der
+from .x509 import Certificate, load_private_key, parse_certificate, pem_to_der
 
 TLS12 = b"\x03\x03"
 CT_CCS, CT_ALERT, CT_HANDSHAKE, CT_APPDATA = 20, 21, 22, 23
@@ -130,7 +130,7 @@ class TlsStream:
     ) -> None:
         self._reader = reader
         self._writer = writer
-        self._key = _load_key(private_key_pem)
+        self._key = load_private_key(private_key_pem)
         self._cert_der = pem_to_der(certificate_pem)
         self._verify_peer = verify_peer
         self._transcript = bytearray()
@@ -333,13 +333,6 @@ class TlsStream:
 
     async def wait_closed(self) -> None:
         await self._writer.wait_closed()
-
-
-def _load_key(pem: str) -> PrivateKey:
-    from .x509 import _children, _read
-
-    _, body, _, _ = _read(pem_to_der(pem), 0)
-    return PrivateKey(BRAINPOOL_P320R1, int.from_bytes(_children(body)[1][1], "big"))
 
 
 def _ecdhe(group: int, server_point: bytes) -> tuple[bytes, bytes]:

@@ -72,9 +72,14 @@ def test_handshake_magic_encoding():
 
 
 def test_split_code():
+    from mdg.errors import MdgInvalidPairingCode, MdgLanPairingCode
+
     assert split_code("123 456 789") == ("1234", "56789")
-    with pytest.raises(Exception):
+    assert split_code("1234-56789") == ("1234", "56789")
+    with pytest.raises(MdgInvalidPairingCode):
         split_code("12345")
+    with pytest.raises(MdgLanPairingCode):
+        split_code("0000 123 456")
 
 
 class _FakeConn:
@@ -123,18 +128,15 @@ async def _fake_cc_server(conn: _FakeConn, own: Identity, client_cert, password:
 
 
 @pytest.mark.parametrize(("client_pw", "server_pw", "ok"), [("12345", "12345", True), ("12345", "12346", False)])
-def test_pace_against_fake_cc(client_pw, server_pw, ok):
-    async def run():
-        client_id, server_id = Identity.generate(), Identity.generate()
-        a, b = asyncio.Queue(), asyncio.Queue()
-        client = _FakeConn(a, b, server_id.certificate)
-        server = _FakeConn(b, a, client_id.certificate)
-        return await asyncio.gather(
-            _run_pace(client, client_id, client_pw),
-            _fake_cc_server(server, server_id, client_id.certificate, server_pw),
-        )
-
-    client_ok, server_ok = asyncio.run(run())
+async def test_pace_against_fake_cc(client_pw, server_pw, ok):
+    client_id, server_id = Identity.generate(), Identity.generate()
+    a, b = asyncio.Queue(), asyncio.Queue()
+    client = _FakeConn(a, b, server_id.certificate)
+    server = _FakeConn(b, a, client_id.certificate)
+    client_ok, server_ok = await asyncio.gather(
+        _run_pace(client, client_id, client_pw),
+        _fake_cc_server(server, server_id, client_id.certificate, server_pw),
+    )
     assert client_ok is ok and server_ok is ok
 
 
@@ -164,3 +166,20 @@ def test_schedule_helpers():
     ]
     assert day[-1]["endTimeFromMidnight"] == "1.00:00:00"
     assert [str(p) for p in parse_periods(day) if p.state == "AtHome"] == ["06:00-08:00", "16:00-22:30"]
+
+
+def test_cc_time_with_offset():
+    from datetime import datetime, timezone
+
+    api = sys.modules.get("danfoss_link.api")
+    if api is None:
+        test_schedule_helpers()
+        api = sys.modules["danfoss_link.api"]
+    tz = api.cc_timezone("2026-11-01T16:09:46+01:00")
+    assert tz is not None and tz.utcoffset(None).total_seconds() == 3600
+    assert api.cc_timezone("2026-11-01T16:09:46Z") is None
+    moment = datetime(2026, 12, 20, 7, 0, tzinfo=timezone.utc)
+    # CC with an offset: local time without suffix; UTC CC: Z suffix (like the app)
+    assert api.format_cc_time(moment, tz) == "2026-12-20T08:00:00"
+    assert api.format_cc_time(moment, None) == "2026-12-20T07:00:00Z"
+    assert api.parse_cc_time("2026-12-20T08:00:00", tz) == moment

@@ -1,0 +1,230 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Danfoss Link",
+        "description": "Ako sa má Home Assistant pripojiť k tvojej Danfoss Link CC?",
+        "menu_options": {
+          "pair": "Spárovať kódom z CC",
+          "credentials": "Použiť existujúcu identitu"
+        }
+      },
+      "reconfigure": {
+        "title": "Zmeniť nastavenie Danfoss Link",
+        "description": "Spáruj znova novým kódom alebo zadaj inú identitu pre tú istú CC.",
+        "menu_options": {
+          "pair": "Spárovať kódom z CC",
+          "credentials": "Použiť existujúcu identitu"
+        }
+      },
+      "pair": {
+        "title": "Spárovanie s Danfoss Link CC",
+        "description": "Na CC spusti párovanie novej aplikácie, na displeji sa zobrazí kód. Kód platí len krátko, zadaj ho hneď.",
+        "data": {
+          "pairing_code": "Párovací kód",
+          "device_name": "Názov zobrazený na CC",
+          "alarm_notifications": "Zobrazovať alarmy z CC ako notifikácie"
+        },
+        "data_description": {
+          "device_name": "Pod týmto názvom sa Home Assistant zobrazí v zozname spárovaných aplikácií na CC."
+        }
+      },
+      "verify": {
+        "title": "Pripojenie zlyhalo",
+        "description": "Párovanie prebehlo, ale prvé pripojenie k CC zlyhalo. Odošli formulár a skúsi sa to znova (nový kód netreba)."
+      },
+      "credentials": {
+        "title": "Použiť existujúcu identitu",
+        "description": "Vlož obsah súboru danfoss_identity.json (z tools/danfoss_cli.py), alebo certifikát, súkromný kľúč a peer id CC zo spárovanej aplikácie.",
+        "data": {
+          "identity_json": "Obsah danfoss_identity.json",
+          "certificate": "Certifikát (PEM)",
+          "private_key": "Súkromný kľúč (PEM)",
+          "peer_id": "Peer id CC",
+          "device_name": "Názov zobrazený na CC",
+          "alarm_notifications": "Zobrazovať alarmy z CC ako notifikácie"
+        }
+      }
+    },
+    "error": {
+      "invalid_code": "Toto nie je párovací kód. Zadaj ho presne tak, ako ho ukazuje CC.",
+      "lan_code": "Kódy začínajúce 0000 sú na párovanie v lokálnej sieti, ktoré nie je podporované. Použi párovanie cez Danfoss cloud.",
+      "code_expired": "Na tento kód nečaká žiadna CC. Kód vypršal alebo je zle zadaný; spusti párovanie na CC znova.",
+      "wrong_code": "CC kód odmietla. Skontroluj ho a skús znova, alebo spusti párovanie na CC znova.",
+      "pairing_timeout": "CC počas párovania prestala odpovedať. Skontroluj, či je online, a skús to s novým kódom.",
+      "pairing_failed": "Párovanie zlyhalo, podrobnosti sú v logu.",
+      "invalid_credentials": "Identitu sa nepodarilo načítať, alebo súkromný kľúč nepatrí k certifikátu.",
+      "cc_offline": "Danfoss cloud sa nevie spojiť s tvojou CC. Skontroluj, či je CC pripojená na internet.",
+      "cannot_connect": "Nedá sa pripojiť cez Danfoss cloud (mdg-danfoss.hosted.trifork.com). Ak tú istú identitu používa iný klient, zavri ho.",
+      "unknown": "Neočakávaná chyba, pozri log."
+    },
+    "abort": {
+      "already_configured": "Táto Danfoss Link CC je už nastavená.",
+      "wrong_cc": "Táto identita patrí inej CC.",
+      "reconfigure_successful": "Nastavenie Danfoss Link bolo zmenené."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Možnosti Danfoss Link",
+        "data": {
+          "scan_interval": "Interval obnovy",
+          "alarm_notifications": "Zobrazovať alarmy z CC ako notifikácie"
+        },
+        "data_description": {
+          "scan_interval": "Ako často sa CC číta. Každé čítanie ide cez Danfoss cloud."
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "living_zone": {
+        "name": "Zóna Living"
+      },
+      "radio": {
+        "name": "Rádiové spojenie"
+      }
+    },
+    "button": {
+      "mark_alarms_read": {
+        "name": "Označiť alarmy ako prečítané"
+      }
+    },
+    "number": {
+      "at_home_setpoint": {
+        "name": "Komfortná teplota"
+      },
+      "away_setpoint": {
+        "name": "Eco teplota"
+      },
+      "manual_setpoint": {
+        "name": "Manuálna teplota"
+      },
+      "vacation_temperature": {
+        "name": "Teplota počas dovolenky"
+      }
+    },
+    "select": {
+      "mode": {
+        "name": "Režim",
+        "state": {
+          "schedule": "Rozvrh",
+          "at_home": "Doma",
+          "vacation": "Dovolenka",
+          "pause": "Pauza",
+          "boost": "Boost"
+        }
+      },
+      "room_mode": {
+        "name": "Regulácia",
+        "state": {
+          "schedule": "Rozvrh",
+          "manual": "Manuálne"
+        }
+      }
+    },
+    "sensor": {
+      "outdoor_temperature": {
+        "name": "Vonkajšia teplota"
+      },
+      "system_state": {
+        "name": "Stav systému",
+        "state": {
+          "at_home": "Komfort (doma)",
+          "away": "Eco (preč)",
+          "asleep": "Spánok",
+          "vacation": "Dovolenka",
+          "pause": "Pauza",
+          "boost": "Boost",
+          "manual": "Manuálne",
+          "off": "Vypnuté"
+        }
+      },
+      "unread_alarms": {
+        "name": "Neprečítané alarmy"
+      },
+      "vacation_start": {
+        "name": "Začiatok dovolenky"
+      },
+      "vacation_end": {
+        "name": "Koniec dovolenky"
+      },
+      "wifi_signal": {
+        "name": "Wi-Fi signál"
+      }
+    }
+  },
+  "exceptions": {
+    "end_before_start": {
+      "message": "Dovolenka musí skončiť až po svojom začiatku."
+    },
+    "end_in_past": {
+      "message": "Koniec dovolenky musí byť v budúcnosti."
+    },
+    "choose_config_entry": {
+      "message": "Máš viac Danfoss Link CC; vyber, ktorú."
+    },
+    "not_loaded": {
+      "message": "Danfoss Link CC nie je načítaná."
+    }
+  },
+  "selector": {
+    "weekday": {
+      "options": {
+        "monday": "Pondelok",
+        "tuesday": "Utorok",
+        "wednesday": "Streda",
+        "thursday": "Štvrtok",
+        "friday": "Piatok",
+        "saturday": "Sobota",
+        "sunday": "Nedeľa"
+      }
+    }
+  },
+  "services": {
+    "set_schedule": {
+      "name": "Nastaviť rozvrh",
+      "description": "Nastaví komfortné úseky miestnosti pre vybrané dni. Zvyšok dňa platí eco teplota. Miestnosti v zóne Living majú spoločný rozvrh.",
+      "fields": {
+        "days": {
+          "name": "Dni",
+          "description": "Dni v týždni, ktoré sa zmenia (predvolene všetky)."
+        },
+        "periods": {
+          "name": "Komfortné úseky",
+          "description": "Zoznam intervalov HH:MM-HH:MM v 15-minútových krokoch, napr. [\"06:00-08:00\", \"16:00-22:30\"]. Prázdny zoznam = celý deň eco."
+        }
+      }
+    },
+    "plan_vacation": {
+      "name": "Naplánovať dovolenku",
+      "description": "Naplánuje dovolenku ako kalendár v aplikácii: CC sa na začiatku prepne do režimu dovolenky a na konci späť na rozvrh.",
+      "fields": {
+        "config_entry_id": {
+          "name": "CC",
+          "description": "Potrebné len ak máš viac Danfoss Link CC."
+        },
+        "start": {
+          "name": "Začiatok",
+          "description": "Kedy dovolenka začína."
+        },
+        "end": {
+          "name": "Koniec",
+          "description": "Kedy dovolenka končí."
+        }
+      }
+    },
+    "cancel_vacation": {
+      "name": "Zrušiť dovolenku",
+      "description": "Zruší naplánovanú dovolenku alebo ukončí prebiehajúcu.",
+      "fields": {
+        "config_entry_id": {
+          "name": "CC",
+          "description": "Potrebné len ak máš viac Danfoss Link CC."
+        }
+      }
+    }
+  }
+}

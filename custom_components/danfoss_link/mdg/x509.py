@@ -129,6 +129,24 @@ def private_key_pem(key: PrivateKey) -> str:
     return _pem("EC PRIVATE KEY", der)
 
 
+def load_private_key(pem: str) -> PrivateKey:
+    """Load an EC key on brainpoolP320r1 from "EC PRIVATE KEY" (RFC 5915) or PKCS#8 PEM."""
+    der = pem_to_der(pem)
+    _, body, _, _ = _read(der, 0)
+    items = _children(body)
+    if len(items) >= 3 and items[1][0] == 0x30:  # PKCS#8: version, algorithm, key
+        if not _curve_matches(_children(items[1][1])[1]):
+            raise ValueError("private key is not on brainpoolP320r1")
+        _, body, _, _ = _read(items[2][1], 0)
+        items = _children(body)
+    if items[0][1] != b"\x01" or items[1][0] != 0x04:
+        raise ValueError("not an EC private key")
+    d = int.from_bytes(items[1][1], "big")
+    if not 0 < d < BRAINPOOL_P320R1.n:
+        raise ValueError("invalid private key")
+    return PrivateKey(BRAINPOOL_P320R1, d)
+
+
 def generate_certificate(key: PrivateKey, now: datetime | None = None) -> str:
     """Self-signed certificate equivalent to the app's generate_certificate()."""
     now = (now or datetime.now(timezone.utc)).replace(microsecond=0)

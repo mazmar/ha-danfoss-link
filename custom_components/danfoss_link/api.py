@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 import logging
 from typing import Any, Protocol
 
-from .const import MODE_PATHS
+from .const import MODE_PATHS, ZONE_LIVING
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -127,6 +127,7 @@ class Room:
     sort_order: int
     floor_setpoint_enabled: bool = False
     floor_setpoint: float | None = None
+    has_temperature_sensor: bool = True
     # weekday -> periods; empty when the CC did not include a schedule
     schedule: dict[str, list[Period]] = field(default_factory=dict)
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
@@ -155,6 +156,7 @@ class Room:
             sort_order=int(data.get("sortOrder", data["id"])),
             floor_setpoint_enabled=floor.get("state") == "Enabled",
             floor_setpoint=_opt_float(floor.get("temperature")),
+            has_temperature_sensor=bool(data.get("hasTemperatureSensor", True)),
             schedule={
                 day: parse_periods(schedule[day]) for day in WEEKDAYS if schedule.get(day)
             },
@@ -164,7 +166,7 @@ class Room:
     @property
     def in_living_zone(self) -> bool:
         """Rooms in the living zone share their regulation type."""
-        return self.zone == "Living"
+        return self.zone == ZONE_LIVING
 
 
 @dataclass
@@ -199,6 +201,12 @@ class Mode:
     start_time: str | None
     end_time: str | None
     rooms: list[int] | None
+
+    def start(self, tz: timezone | None) -> datetime | None:
+        return parse_cc_time(self.start_time, tz)
+
+    def end(self, tz: timezone | None) -> datetime | None:
+        return parse_cc_time(self.end_time, tz)
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> Mode:
@@ -240,6 +248,7 @@ class SystemInfo:
     serial_no: str | None
     branding_type: str | None
     system_time: str | None
+    wifi_signal: int | None = None  # dBm
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
     @classmethod
@@ -250,6 +259,7 @@ class SystemInfo:
             serial_no=data.get("serialNo"),
             branding_type=data.get("brandingType"),
             system_time=data.get("systemTime"),
+            wifi_signal=data.get("wifiSignalStrengthDb"),
             raw=data,
         )
 
@@ -273,8 +283,9 @@ class Alarm:
             id=int(data["id"]),
             is_read=bool(data.get("isRead", False)),
             level=data.get("level"),
-            room=data.get("room"),
-            node=data.get("node"),
+            # the CC sends the room id as a number, the app treats it as a string
+            room=None if data.get("room") in (None, "") else str(data["room"]),
+            node=None if data.get("node") in (None, "") else str(data["node"]),
             title_text_id=data.get("titleTextId"),
             description_text_id=data.get("descriptionTextId"),
             created=data.get("createdDate"),
@@ -306,6 +317,19 @@ def cc_timezone(system_time: str | None) -> timezone | None:
     return timezone(sign * timedelta(hours=hours, minutes=minutes))
 
 
+def parse_cc_time(value: str | None, tz: timezone | None) -> datetime | None:
+    """Parse a CC timestamp: "...Z", "...+HH:MM" or local time in ``tz`` (None = UTC)."""
+    if not value or value[:4] < "1970" or value[:4] > "2099":
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=tz or timezone.utc)
+    return parsed
+
+
 def format_cc_time(value: datetime, tz: timezone | None = None) -> str:
     """Format a timestamp the way the app does.
 
@@ -323,6 +347,11 @@ class DanfossLinkApi:
     def __init__(self, transport: Transport) -> None:
         self._transport = transport
         self._cc_tz: timezone | None = None
+
+    @property
+    def cc_timezone(self) -> timezone | None:
+        """Time zone the CC uses for timestamps without offset (None = UTC)."""
+        return self._cc_tz
 
     async def _call(
         self, method: str, uri: str, content: dict[str, Any] | None = None

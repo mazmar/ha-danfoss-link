@@ -2,27 +2,94 @@
   "config": {
     "step": {
       "user": {
+        "title": "Danfoss Link",
+        "description": "How should Home Assistant connect to your Danfoss Link CC?",
+        "menu_options": {
+          "pair": "Pair with the code from the CC",
+          "credentials": "Use an existing identity"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Danfoss Link",
+        "description": "Pair again with a new code, or enter other credentials for the same CC.",
+        "menu_options": {
+          "pair": "Pair with the code from the CC",
+          "credentials": "Use an existing identity"
+        }
+      },
+      "pair": {
         "title": "Pair with Danfoss Link CC",
-        "description": "On the Danfoss Link CC open Settings → Apps / Remote access → Add new app (Pair app). Enter the pairing code shown on the CC display.",
+        "description": "On the CC start pairing of a new app; the display shows a pairing code. The code is valid only for a short time, enter it right away.",
         "data": {
           "pairing_code": "Pairing code",
-          "device_name": "Name shown on the CC"
+          "device_name": "Name shown on the CC",
+          "alarm_notifications": "Show CC alarms as notifications"
+        },
+        "data_description": {
+          "device_name": "Home Assistant appears under this name in the CC's list of paired apps."
+        }
+      },
+      "verify": {
+        "title": "Connection failed",
+        "description": "Pairing succeeded, but the first connection to the CC failed. Submit to try again (no new code needed)."
+      },
+      "credentials": {
+        "title": "Use an existing identity",
+        "description": "Paste the contents of danfoss_identity.json (from tools/danfoss_cli.py), or the certificate, private key and CC peer id of a paired app.",
+        "data": {
+          "identity_json": "danfoss_identity.json contents",
+          "certificate": "Certificate (PEM)",
+          "private_key": "Private key (PEM)",
+          "peer_id": "CC peer id",
+          "device_name": "Name shown on the CC",
+          "alarm_notifications": "Show CC alarms as notifications"
         }
       }
     },
     "error": {
-      "invalid_code": "Pairing failed – the code is wrong or has expired.",
-      "cannot_connect": "Cannot reach the Danfoss cloud (mdg-danfoss.hosted.trifork.com).",
+      "invalid_code": "That is not a pairing code. Enter it exactly as the CC shows it.",
+      "lan_code": "Codes starting with 0000 are for pairing on the local network, which is not supported. Use pairing through the Danfoss cloud.",
+      "code_expired": "No CC is waiting for this code. It expired or was mistyped; start pairing on the CC again.",
+      "wrong_code": "The CC rejected the code. Check it and try again, or start pairing on the CC again.",
+      "pairing_timeout": "The CC stopped answering during pairing. Check that it is online and try again with a new code.",
+      "pairing_failed": "Pairing failed, see the log for details.",
+      "invalid_credentials": "The identity could not be read, or the private key does not belong to the certificate.",
+      "cc_offline": "The Danfoss cloud cannot reach your CC. Check that the CC is connected to the internet.",
+      "cannot_connect": "Cannot connect through the Danfoss cloud (mdg-danfoss.hosted.trifork.com). If another client uses the same identity, close it.",
       "unknown": "Unexpected error, see the log."
     },
     "abort": {
-      "already_configured": "This Danfoss Link CC is already configured."
+      "already_configured": "This Danfoss Link CC is already configured.",
+      "wrong_cc": "These credentials belong to a different CC.",
+      "reconfigure_successful": "Danfoss Link was reconfigured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Danfoss Link options",
+        "data": {
+          "scan_interval": "Polling interval",
+          "alarm_notifications": "Show CC alarms as notifications"
+        },
+        "data_description": {
+          "scan_interval": "How often the CC is read. Every poll goes through the Danfoss cloud."
+        }
+      }
     }
   },
   "entity": {
-    "climate": {
-      "room": {
-        "name": null
+    "binary_sensor": {
+      "living_zone": {
+        "name": "Living zone"
+      },
+      "radio": {
+        "name": "Radio connection"
+      }
+    },
+    "button": {
+      "mark_alarms_read": {
+        "name": "Mark alarms as read"
       }
     },
     "number": {
@@ -34,17 +101,9 @@
       },
       "manual_setpoint": {
         "name": "Manual temperature"
-      }
-    },
-    "sensor": {
-      "outdoor_temperature": {
-        "name": "Outdoor temperature"
       },
-      "system_state": {
-        "name": "System state"
-      },
-      "unread_alarms": {
-        "name": "Unread alarms"
+      "vacation_temperature": {
+        "name": "Vacation temperature"
       }
     },
     "select": {
@@ -53,26 +112,62 @@
         "state": {
           "schedule": "Schedule",
           "at_home": "At home",
+          "vacation": "Vacation",
           "pause": "Pause",
-          "vacation": "Vacation"
+          "boost": "Boost"
         }
+      },
+      "room_mode": {
+        "name": "Regulation",
+        "state": {
+          "schedule": "Schedule",
+          "manual": "Manual"
+        }
+      }
+    },
+    "sensor": {
+      "outdoor_temperature": {
+        "name": "Outdoor temperature"
+      },
+      "system_state": {
+        "name": "System state",
+        "state": {
+          "at_home": "Comfort (at home)",
+          "away": "Eco (away)",
+          "asleep": "Asleep",
+          "vacation": "Vacation",
+          "pause": "Pause",
+          "boost": "Boost",
+          "manual": "Manual",
+          "off": "Off"
+        }
+      },
+      "unread_alarms": {
+        "name": "Unread alarms"
+      },
+      "vacation_start": {
+        "name": "Vacation start"
+      },
+      "vacation_end": {
+        "name": "Vacation end"
+      },
+      "wifi_signal": {
+        "name": "Wi-Fi signal"
       }
     }
   },
-  "services": {
-    "set_schedule": {
-      "name": "Set schedule",
-      "description": "Set the comfort (at home) periods of a room for the selected days. The rest of each day uses the eco (away) temperature. Rooms in the living zone share one schedule.",
-      "fields": {
-        "days": {
-          "name": "Days",
-          "description": "Weekdays to change (default: all)."
-        },
-        "periods": {
-          "name": "Comfort periods",
-          "description": "List of HH:MM-HH:MM intervals in 15 minute steps, e.g. [\"06:00-08:00\", \"16:00-22:30\"]. Empty list = eco all day."
-        }
-      }
+  "exceptions": {
+    "end_before_start": {
+      "message": "The vacation must end after it starts."
+    },
+    "end_in_past": {
+      "message": "The vacation must end in the future."
+    },
+    "choose_config_entry": {
+      "message": "You have more than one Danfoss Link CC; choose which one."
+    },
+    "not_loaded": {
+      "message": "The Danfoss Link CC is not loaded."
     }
   },
   "selector": {
@@ -85,6 +180,50 @@
         "friday": "Friday",
         "saturday": "Saturday",
         "sunday": "Sunday"
+      }
+    }
+  },
+  "services": {
+    "set_schedule": {
+      "name": "Set schedule",
+      "description": "Set the comfort (at home) periods of a room for the selected days. The rest of each day uses the eco temperature. Rooms in the living zone share one schedule.",
+      "fields": {
+        "days": {
+          "name": "Days",
+          "description": "Weekdays to change (default: all)."
+        },
+        "periods": {
+          "name": "Comfort periods",
+          "description": "List of HH:MM-HH:MM intervals in 15 minute steps, e.g. [\"06:00-08:00\", \"16:00-22:30\"]. Empty list = eco all day."
+        }
+      }
+    },
+    "plan_vacation": {
+      "name": "Plan vacation",
+      "description": "Plan a vacation like the app's vacation calendar: the CC switches to vacation mode at the start and back to the schedule at the end.",
+      "fields": {
+        "config_entry_id": {
+          "name": "CC",
+          "description": "Only needed when you have more than one Danfoss Link CC."
+        },
+        "start": {
+          "name": "Start",
+          "description": "When the vacation starts."
+        },
+        "end": {
+          "name": "End",
+          "description": "When the vacation ends."
+        }
+      }
+    },
+    "cancel_vacation": {
+      "name": "Cancel vacation",
+      "description": "Remove a planned vacation or end a running one.",
+      "fields": {
+        "config_entry_id": {
+          "name": "CC",
+          "description": "Only needed when you have more than one Danfoss Link CC."
+        }
       }
     }
   }

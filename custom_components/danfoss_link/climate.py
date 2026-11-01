@@ -17,13 +17,14 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 import voluptuous as vol
 
 from .api import WEEKDAYS, Period
+from .const import REGULATION_MANUAL, REGULATION_SCHEDULE
 from .coordinator import DanfossLinkConfigEntry, DanfossLinkCoordinator
 from .entity import DanfossLinkRoomEntity
 
 PARALLEL_UPDATES = 1
 
 # Room "regulation.type" <-> HVAC mode
-REGULATION_TO_HVAC = {"Schedule": HVACMode.AUTO, "Manual": HVACMode.HEAT}
+REGULATION_TO_HVAC = {REGULATION_SCHEDULE: HVACMode.AUTO, REGULATION_MANUAL: HVACMode.HEAT}
 HVAC_TO_REGULATION = {v: k for k, v in REGULATION_TO_HVAC.items()}
 
 
@@ -85,7 +86,6 @@ class DanfossLinkClimate(DanfossLinkRoomEntity, ClimateEntity):
     _attr_target_temperature_step = 0.5
     _attr_hvac_modes = [HVACMode.AUTO, HVACMode.HEAT]
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
-    _attr_translation_key = "room"
 
     def __init__(self, coordinator: DanfossLinkCoordinator, room_id: int) -> None:
         super().__init__(coordinator, room_id, "climate")
@@ -108,7 +108,7 @@ class DanfossLinkClimate(DanfossLinkRoomEntity, ClimateEntity):
 
     @property
     def hvac_mode(self) -> HVACMode | None:
-        return REGULATION_TO_HVAC.get(self.room.regulation_type or "Schedule", HVACMode.AUTO)
+        return REGULATION_TO_HVAC.get(self.room.regulation_type or REGULATION_SCHEDULE, HVACMode.AUTO)
 
     @property
     def hvac_action(self) -> HVACAction | None:
@@ -145,24 +145,23 @@ class DanfossLinkClimate(DanfossLinkRoomEntity, ClimateEntity):
 
     async def async_set_schedule(self, days: list[str], periods: list[Period] | None) -> None:
         """Set comfort periods for the given days; the rest of each day is eco."""
-        await self.coordinator.api.set_room_schedule(
-            self.room, {day: periods or [] for day in days}
-        )
         self.coordinator.invalidate_schedules()
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_write(
+            self.coordinator.api.set_room_schedule(self.room, {day: periods or [] for day in days})
+        )
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         if (temperature := kwargs.get(ATTR_TEMPERATURE)) is None:
             return
         api = self.coordinator.api
-        if self.room.regulation_type == "Manual":
+        if self.room.regulation_type == REGULATION_MANUAL:
             # In manual regulation the persistent target is the manual setpoint.
-            await api.set_room_manual_setpoint(self._room_id, temperature)
+            await self.coordinator.async_write(api.set_room_manual_setpoint(self._room_id, temperature))
         else:
             # Same as the app's main dial: override until the next schedule change.
-            await api.set_room_setpoint(self._room_id, temperature)
-        await self.coordinator.async_request_refresh()
+            await self.coordinator.async_write(api.set_room_setpoint(self._room_id, temperature))
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
-        await self.coordinator.api.set_room_regulation(self.room, HVAC_TO_REGULATION[hvac_mode])
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_write(
+            self.coordinator.api.set_room_regulation(self.room, HVAC_TO_REGULATION[hvac_mode])
+        )

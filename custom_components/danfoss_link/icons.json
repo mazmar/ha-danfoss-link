@@ -1,0 +1,53 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "living_zone": {"default": "mdi:sofa"}
+    },
+    "button": {
+      "mark_alarms_read": {"default": "mdi:bell-check"}
+    },
+    "select": {
+      "mode": {
+        "default": "mdi:home-thermometer",
+        "state": {
+          "schedule": "mdi:calendar-clock",
+          "at_home": "mdi:home",
+          "vacation": "mdi:airplane",
+          "pause": "mdi:pause-circle",
+          "boost": "mdi:rocket-launch"
+        }
+      },
+      "room_mode": {
+        "default": "mdi:calendar-clock",
+        "state": {"schedule": "mdi:calendar-clock", "manual": "mdi:hand-back-right"}
+      }
+    },
+    "sensor": {
+      "system_state": {
+        "default": "mdi:home-thermometer",
+        "state": {
+          "at_home": "mdi:home",
+          "away": "mdi:home-export-outline",
+          "asleep": "mdi:sleep",
+          "vacation": "mdi:airplane",
+          "pause": "mdi:pause-circle",
+          "boost": "mdi:rocket-launch"
+        }
+      },
+      "unread_alarms": {"default": "mdi:bell-alert"},
+      "vacation_start": {"default": "mdi:airplane-takeoff"},
+      "vacation_end": {"default": "mdi:airplane-landing"}
+    },
+    "number": {
+      "at_home_setpoint": {"default": "mdi:home-thermometer"},
+      "away_setpoint": {"default": "mdi:home-export-outline"},
+      "manual_setpoint": {"default": "mdi:hand-back-right"},
+      "vacation_temperature": {"default": "mdi:airplane"}
+    }
+  },
+  "services": {
+    "set_schedule": {"service": "mdi:calendar-edit"},
+    "plan_vacation": {"service": "mdi:airplane-takeoff"},
+    "cancel_vacation": {"service": "mdi:airplane-off"}
+  }
+}

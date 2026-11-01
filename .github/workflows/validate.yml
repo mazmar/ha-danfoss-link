@@ -29,5 +29,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install pytest cryptography
-      - run: python -m pytest -q tests
+      - run: pip install -r requirements_test.txt
+      - run: python -m pytest -q

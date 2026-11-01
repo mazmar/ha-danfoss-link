@@ -23,7 +23,16 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from . import pb
 from .connection import ControlConnection, PeerConnection, open_routed_connection
 from .ec import BRAINPOOL_P320R1, PrivateKey, decode_point, encode_point, point_add, scalar_mult
-from .errors import MdgPairingError
+from .errors import (
+    MdgConnectionError,
+    MdgInvalidPairingCode,
+    MdgLanPairingCode,
+    MdgPairingCodeExpired,
+    MdgPairingError,
+    MdgPairingTimeout,
+    MdgPeerUnavailable,
+    MdgWrongPairingCode,
+)
 from .identity import Identity
 from .x509 import peer_id_from_ski
 
@@ -31,6 +40,8 @@ _LOGGER = logging.getLogger(__name__)
 
 PACE_MAGIC = 0xF09D8CA7
 PASSWORD_LEN = 5
+LAN_CODE_PREFIX = "0000"
+CODE_SEPARATORS = " -_.\t"
 PAIRING_TIMEOUT = 30
 CURVE = BRAINPOOL_P320R1
 
@@ -45,9 +56,11 @@ class Pairing:
 
 def split_code(code: str) -> tuple[str, str]:
     """OTP -> (pair_id sent to the cloud, 5 digit PACE password)."""
-    code = "".join(code.split())
-    if len(code) <= PASSWORD_LEN:
-        raise MdgPairingError("pairing code is too short")
+    code = "".join(ch for ch in code.strip() if ch not in CODE_SEPARATORS)
+    if len(code) <= PASSWORD_LEN or not code.isalnum():
+        raise MdgInvalidPairingCode("this is not a pairing code")
+    if code.startswith(LAN_CODE_PREFIX):
+        raise MdgLanPairingCode("codes starting with 0000 are for LAN pairing")
     return code[:-PASSWORD_LEN], code[-PASSWORD_LEN:]
 
 
@@ -127,17 +140,27 @@ async def _run_pace(conn: PeerConnection, identity: Identity, password: str) -> 
 async def pair(control: ControlConnection, identity: Identity, code: str, name: str) -> Pairing:
     """Pair with a CC using the code shown on its display."""
     pair_id, password = split_code(code)
-    routing = await control.place_pairing_call(pair_id)
-    conn = await open_routed_connection(identity, routing, expected_peer_id=None)
+    try:
+        routing = await control.place_pairing_call(pair_id)
+    except MdgPeerUnavailable as err:
+        raise MdgPairingCodeExpired("no CC is waiting for this code") from err
+    try:
+        conn = await open_routed_connection(identity, routing, expected_peer_id=None)
+    except MdgConnectionError as err:
+        if "PEER_TIMEOUT" in str(err):
+            raise MdgPairingCodeExpired("the CC did not answer the pairing call") from err
+        raise
     try:
         async with asyncio.timeout(PAIRING_TIMEOUT):
             if not await _run_pace(conn, identity, password):
-                raise MdgPairingError("invalid pairing code")
+                raise MdgWrongPairingCode("the CC rejected the pairing code")
             await _send(conn, "contact_info", {"name": name})
             contact = await _recv(conn, "contact_info")
-    except (asyncio.IncompleteReadError, ConnectionError) as err:
+    except TimeoutError as err:
+        raise MdgPairingTimeout("the CC stopped answering during pairing") from err
+    except (asyncio.IncompleteReadError, ConnectionError, MdgConnectionError) as err:
         # The CC closes the socket when the proof does not match.
-        raise MdgPairingError("invalid pairing code") from err
+        raise MdgWrongPairingCode("the CC rejected the pairing code") from err
     finally:
         await conn.close()
 
