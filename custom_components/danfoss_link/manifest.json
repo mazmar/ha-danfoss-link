@@ -2,13 +2,13 @@
   "domain": "danfoss_link",
   "name": "Danfoss Link",
   "codeowners": [
-    "@GITHUB_USER"
+    "@mazmar"
   ],
   "config_flow": true,
-  "documentation": "https://github.com/GITHUB_USER/ha-danfoss-link",
+  "documentation": "https://github.com/mazmar/ha-danfoss-link",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/GITHUB_USER/ha-danfoss-link/issues",
+  "issue_tracker": "https://github.com/mazmar/ha-danfoss-link/issues",
   "requirements": [
     "cryptography>=41.0.0"
   ],

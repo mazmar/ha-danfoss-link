@@ -45,7 +45,7 @@ changing one changes all of them.
 
 ### HACS (recommended)
 
-1. HACS → ⋮ → **Custom repositories** → add `https://github.com/GITHUB_USER/ha-danfoss-link`, type **Integration**.
+1. HACS → ⋮ → **Custom repositories** → add `https://github.com/mazmar/ha-danfoss-link`, type **Integration**.
 2. Search for **Danfoss Link**, **Download**, restart Home Assistant.
 
 ### Manual
