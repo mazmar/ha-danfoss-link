@@ -1,0 +1,50 @@
+name: Release
+
+# Push a tag like v0.2.0 -> tests run, manifest version is set to 0.2.0 and a
+# GitHub release with danfoss_link.zip is published. HACS offers that release.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Run tests
+        run: |
+          pip install pytest cryptography
+          python -m pytest -q tests
+
+      - name: Set manifest version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          python - "$VERSION" <<'PY'
+          import json, sys
+          path = "custom_components/danfoss_link/manifest.json"
+          manifest = json.load(open(path))
+          manifest["version"] = sys.argv[1]
+          with open(path, "w") as fh:
+              json.dump(manifest, fh, indent=2)
+              fh.write("\n")
+          PY
+
+      - name: Build zip
+        run: |
+          cd custom_components/danfoss_link
+          zip -r "$GITHUB_WORKSPACE/danfoss_link.zip" . -x '__pycache__/*' '*/__pycache__/*'
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: danfoss_link.zip
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}

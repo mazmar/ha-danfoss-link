@@ -101,6 +101,24 @@ python3 tools/danfoss_cli.py status
 python3 tools/danfoss_cli.py raw GET /api/rooms/1
 ```
 
+### Releasing
+
+Releases are built by GitHub Actions (`.github/workflows/release.yml`):
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+The workflow runs the tests, writes `0.2.0` into `manifest.json`, builds
+`danfoss_link.zip` and publishes a GitHub release. HACS offers it as an
+update. Tags with a dash (e.g. `v0.3.0-beta.1`) become pre-releases, which
+HACS shows only when *Show beta versions* is enabled for the repository.
+`validate.yml` runs hassfest, the HACS validation and the tests on every push.
+
+The integration icon is shipped in `custom_components/danfoss_link/brand/`
+(supported since Home Assistant 2026.3).
+
 To get debug logs in Home Assistant:
 
 ```yaml
