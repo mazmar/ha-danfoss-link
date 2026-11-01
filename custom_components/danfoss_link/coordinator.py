@@ -35,6 +35,10 @@ _LOGGER = logging.getLogger(__name__)
 SCHEDULE_INTERVAL = 15 * 60  # seconds
 
 
+def _monotonic() -> float:
+    return time.monotonic()
+
+
 @dataclass
 class DanfossLinkData:
     """Snapshot of the CC state."""
@@ -85,10 +89,11 @@ class DanfossLinkCoordinator(DataUpdateCoordinator[DanfossLinkData]):
         # Schedules are only part of GET /api/rooms/{id}; they rarely change,
         # so fetch them on start, every SCHEDULE_INTERVAL and after edits.
         self._schedules: dict[int, dict] = {}
-        self._schedules_fetched = 0.0
+        # monotonic() starts near 0 after boot, so "never" must not be 0.0
+        self._schedules_fetched: float | None = None
 
     def invalidate_schedules(self) -> None:
-        self._schedules_fetched = 0.0
+        self._schedules_fetched = None
 
     async def _async_update_data(self) -> DanfossLinkData:
         try:
@@ -99,9 +104,12 @@ class DanfossLinkCoordinator(DataUpdateCoordinator[DanfossLinkData]):
             info = await self.api.get_system_info()
             status = await self.api.get_system_status()
             rooms = await self.api.get_rooms()
-            if time.monotonic() - self._schedules_fetched > SCHEDULE_INTERVAL:
+            if (
+                self._schedules_fetched is None
+                or _monotonic() - self._schedules_fetched > SCHEDULE_INTERVAL
+            ):
                 self._schedules = {r.id: (await self.api.get_room(r.id)).schedule for r in rooms}
-                self._schedules_fetched = time.monotonic()
+                self._schedules_fetched = _monotonic()
             for room in rooms:
                 room.schedule = self._schedules.get(room.id, {})
             modes = await self.api.get_modes()

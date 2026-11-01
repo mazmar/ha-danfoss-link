@@ -164,6 +164,8 @@ def config_entry(hass, identity) -> MockConfigEntry:
 
 @pytest.fixture
 async def setup_integration(hass, config_entry, fake_cc):
-    assert await hass.config_entries.async_setup(config_entry.entry_id)
-    await hass.async_block_till_done()
+    # Like a freshly booted host: time.monotonic() is still small.
+    with patch("custom_components.danfoss_link.coordinator._monotonic", return_value=60.0):
+        assert await hass.config_entries.async_setup(config_entry.entry_id)
+        await hass.async_block_till_done()
     return fake_cc
